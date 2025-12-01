@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import './Sidebar.css';
 
+/* Add styles for delete button directly here if Sidebar.css is not editable or for quick iteration */
+/* Ideally this should go into Sidebar.css, but I will check if I can edit it. */
+
 export default function Sidebar({
   conversations,
   currentConversationId,
   onSelectConversation,
   onNewConversation,
+  onDeleteConversation,
 }) {
   return (
     <div className="sidebar">
@@ -23,9 +27,8 @@ export default function Sidebar({
           conversations.map((conv) => (
             <div
               key={conv.id}
-              className={`conversation-item ${
-                conv.id === currentConversationId ? 'active' : ''
-              }`}
+              className={`conversation-item ${conv.id === currentConversationId ? 'active' : ''
+                }`}
               onClick={() => onSelectConversation(conv.id)}
             >
               <div className="conversation-title">
@@ -34,6 +37,16 @@ export default function Sidebar({
               <div className="conversation-meta">
                 {conv.message_count} messages
               </div>
+              <button
+                className="delete-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteConversation(conv.id);
+                }}
+                title="Delete conversation"
+              >
+                ×
+              </button>
             </div>
           ))
         )}

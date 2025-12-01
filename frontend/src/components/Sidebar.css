@@ -76,3 +76,33 @@
   color: #999;
   font-size: 12px;
 }
+
+.conversation-item {
+  position: relative;
+  padding-right: 32px; /* Make space for delete button */
+}
+
+.delete-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: none; /* Hide by default */
+  line-height: 1;
+}
+
+.conversation-item:hover .delete-btn {
+  display: block; /* Show on hover */
+}
+
+.delete-btn:hover {
+  color: #d93025;
+  background: rgba(217, 48, 37, 0.1);
+}

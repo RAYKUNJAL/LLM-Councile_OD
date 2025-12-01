@@ -1,8 +1,51 @@
 """3-stage LLM Council orchestration."""
 
+import asyncio
+import asyncio
 from typing import List, Dict, Any, Tuple
-from .openrouter import query_models_parallel, query_model
+from . import google_api, groq_api, hf_api
 from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
+
+
+async def query_model_safe(model: str, messages: List[Dict[str, str]]) -> Dict[str, Any]:
+    """Query a single model and return formatted response."""
+    try:
+        content = None
+        
+        if model.startswith("google/") or model.startswith("gemini"):
+            # Handle both prefixed and legacy non-prefixed Google models
+            clean_model = model.replace("google/", "")
+            content = await google_api.generate_response(clean_model, messages)
+            
+        elif model.startswith("groq/"):
+            content = await groq_api.generate_response(model, messages)
+            
+        elif model.startswith("hf/"):
+            content = await hf_api.generate_response(model, messages)
+            
+        else:
+            # Default to Google if no prefix match (legacy fallback)
+            content = await google_api.generate_response(model, messages)
+
+        if content and content.startswith("Error:"):
+            return None
+            
+        return {"content": content} if content else None
+        
+    except Exception as e:
+        print(f"Error querying {model}: {e}")
+        return None
+
+
+async def query_models_parallel(models: List[str], messages: List[Dict[str, str]]) -> Dict[str, Any]:
+    """Query multiple models in parallel."""
+    tasks = [query_model_safe(model, messages) for model in models]
+    results = await asyncio.gather(*tasks)
+    
+    return {
+        model: result 
+        for model, result in zip(models, results)
+    }
 
 
 async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
@@ -159,7 +202,7 @@ Provide a clear, well-reasoned final answer that represents the council's collec
     messages = [{"role": "user", "content": chairman_prompt}]
 
     # Query the chairman model
-    response = await query_model(CHAIRMAN_MODEL, messages)
+    response = await query_model_safe(CHAIRMAN_MODEL, messages)
 
     if response is None:
         # Fallback if chairman fails
@@ -274,8 +317,8 @@ Title:"""
 
     messages = [{"role": "user", "content": title_prompt}]
 
-    # Use gemini-2.5-flash for title generation (fast and cheap)
-    response = await query_model("google/gemini-2.5-flash", messages, timeout=30.0)
+    # Use gemini-1.5-flash for title generation (fast and cheap)
+    response = await query_model_safe("gemini-1.5-flash", messages)
 
     if response is None:
         # Fallback to a generic title
